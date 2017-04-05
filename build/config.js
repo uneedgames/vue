@@ -124,6 +124,27 @@ const builds = {
     dest: path.resolve(__dirname, '../packages/weex-template-compiler/build.js'),
     format: 'cjs',
     external: Object.keys(require('../packages/weex-template-compiler/package.json').dependencies)
+  },
+  'uneed2d-compiler': {
+    uneed2d: true,
+    entry: path.resolve(__dirname, '../src/entries/uneed2d-compiler.js'),
+    dest: path.resolve(__dirname, '../packages/uneed2d-template-compiler/build.js'),
+    format: 'cjs',
+    external: Object.keys(require('../packages/uneed2d-template-compiler/package.json').dependencies)
+  },
+  'uneed2d-framework': {
+    uneed2d: true,
+    entry: path.resolve(__dirname, '../src/entries/uneed2d-framework.js'),
+    dest: path.resolve(__dirname, '../dist/vue.uneed2d.js'),
+    format: 'umd'
+  },
+  'uneed2d-full': {
+    uneed2d: true,
+    entry: path.resolve(__dirname, '../src/entries/uneed2d-framework-with-compiler.js'),
+    dest: path.resolve(__dirname, '../dist/vue.uneed2d.full.js'),
+    format: 'umd',
+    alias: { he: './entity-decoder' },
+    env: 'development'
   }
 }
 
