@@ -36,4 +36,12 @@ Vue.prototype.$mount = function (
   )
 }
 
+Vue.prototype.$getParentObject = function() {
+  let parent = this.$parent
+  while(parent && !parent.$object) {
+    parent = parent.$parent
+  }
+  return parent && parent.$object
+}
+
 export default Vue

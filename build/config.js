@@ -136,6 +136,7 @@ const builds = {
     uneed2d: true,
     entry: path.resolve(__dirname, '../src/entries/uneed2d-framework.js'),
     dest: path.resolve(__dirname, '../dist/vue.uneed2d.js'),
+    env: 'production',
     format: 'umd'
   },
   'uneed2d-full': {

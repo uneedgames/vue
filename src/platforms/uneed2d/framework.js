@@ -5,28 +5,38 @@ const layoutMixin = {
   data() {
     return {
       contentSize: {
-        width: stage.width,
-        height: stage.height
+        width: UN.stage.width,
+        height: UN.stage.height
       }
     }
   },
   created() {
-    this.$object = stage
-    stage.on('resize', this.onStageResize, this)
+    UN.stage.on('resize', this.onStageResize, this)
   },
   destroyed() {
-    stage.off('resize', this.onStageResize, this)
+    UN.stage.off('resize', this.onStageResize, this)
   },
 
   methods: {
     onStageResize() {
-      this.contentSize.width = stage.width
-      this.contentSize.height = stage.height
+      this.contentSize.width = UN.stage.width
+      this.contentSize.height = UN.stage.height
     },
   }
 }
 
-Vue.initWith = function (container, options) {
+function containerMixin(container) {
+  return {
+    created() {
+      this.$object = container
+    },
+    destroyed() {
+      this.$object.destroy()
+    }
+  }
+}
+
+Vue.initWith = function (container, Component) {
   let stage = container.stage
   let view = stage.view || stage.renderer.view
   let parent = view.parentNode
@@ -34,11 +44,14 @@ Vue.initWith = function (container, options) {
   vueStage.id = CONST.ROOT
   vueStage.style.display = 'none'
   parent.appendChild(vueStage)
-  stage.vue = new Vue(Object.assign(options, {
-    el: vueStage,
-    replace: false,
-    mixins: [layoutMixin].concat(options.mixins || [])
-  }))
+  stage.vue = new Vue({
+    mixins: [layoutMixin, containerMixin(container)],
+    render(createElement) {
+      console.log('render')
+      return createElement(Component)
+    }
+  })
+  stage.vue.$mount(vueStage)
 }
 
 if(typeof window !== 'undefined' && window.UN) {

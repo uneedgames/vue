@@ -41,11 +41,11 @@ export default {
   },
 
   mounted() {
-    this.$parent.$object.addChild(this.$object)
+    this.$getParentObject().addChild(this.$object)
   },
 
   beforeDestroy() {
-    this.$parent.$object.removeChild(this.$object)
+    this.$getParentObject().removeChild(this.$object)
   },
   
   destroyed() {

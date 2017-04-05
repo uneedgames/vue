@@ -32,7 +32,7 @@ export function createComment (text) {
 }
 
 export function insertBefore (parentNode, newNode, referenceNode) {
-  if (isRootNode(parentNode) && !isHTMLElement(newNode)) {
+  if (isHTMLElement(parentNode) && !isHTMLElement(newNode)) {
     rootNode.insertBefore(newNode, referenceNode)
   } else {
     parentNode.insertBefore(newNode, referenceNode)
@@ -40,7 +40,7 @@ export function insertBefore (parentNode, newNode, referenceNode) {
 }
 
 export function removeChild (node, child) {
-  if (isRootNode(node) && !isHTMLElement(child)) {
+  if (isHTMLElement(node) && !isHTMLElement(child)) {
     rootNode.removeChild(child)
   } else {
     node.removeChild(child)
@@ -48,7 +48,7 @@ export function removeChild (node, child) {
 }
 
 export function appendChild (node, child) {
-  if (isRootNode(node) && !isHTMLElement(child)) {
+  if (isHTMLElement(node) && !isHTMLElement(child)) {
     rootNode.appendChild(child)
   } else {
     node.appendChild(child)
