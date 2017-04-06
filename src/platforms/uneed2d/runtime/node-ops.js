@@ -12,23 +12,31 @@ function isHTMLElement (node) {
 }
 
 export function createElement (tagName, vnode) {
-  if (process.env.NODE_ENV !== 'production') {
+  if (process.env.NODE_ENV !== 'production' || UN.vue.DEBUG) {
     return document.createElement(tagName)
   }
   return new U2DElement(tagName)
 }
 
 export function createElementNS (namespace, tagName) {
-  if (process.env.NODE_ENV !== 'production') {
+  if (process.env.NODE_ENV !== 'production' || UN.vue.DEBUG) {
     return document.createElementNS(tagName)
   }
   return new U2DElement(namespace + ':' + tagName)
 }
 
 export function createTextNode (text) {
+  if (process.env.NODE_ENV !== 'production' || UN.vue.DEBUG) {
+    return document.createTextNode(text)
+  }
+  return new U2DElement('TextNode:' + text)
 }
 
 export function createComment (text) {
+  if (process.env.NODE_ENV !== 'production' || UN.vue.DEBUG) {
+    return document.createComment(text)
+  }
+  return new U2DElement('CommentNode:' + text)
 }
 
 export function insertBefore (parentNode, newNode, referenceNode) {

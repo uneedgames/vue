@@ -20,7 +20,7 @@
     "dev:weex": "rollup -w -c build/config.js --environment TARGET:weex-framework ",
     "dev:weex:compiler": "rollup -w -c build/config.js --environment TARGET:weex-compiler ",
     "dev:uneed2d": "rollup -w -c build/config.js --environment TARGET:uneed2d-full ",
-    "dev:uneed2d:framework": "rollup -w -c build/config.js --environment TARGET:uneed2d-framework ",
+    "dev:uneed2d:framework": "rollup -w -c build/config.js --environment TARGET:uneed2d-framework-dev",
     "dev:uneed2d:compiler": "rollup -w -c build/config.js --environment TARGET:uneed2d-compiler ",
     "build": "node build/build.js",
     "build:ssr": "npm run build -- vue.runtime.common.js,vue-server-renderer",
@@ -114,5 +114,8 @@
     "webpack": "^2.2.0",
     "weex-js-runtime": "^0.17.0-alpha4",
     "weex-vdom-tester": "^0.1.4"
+  },
+  "dependencies": {
+    "rollup-plugin-uglify": "^1.0.1"
   }
 }

@@ -3,6 +3,7 @@ const flow = require('rollup-plugin-flow-no-whitespace')
 const buble = require('rollup-plugin-buble')
 const replace = require('rollup-plugin-replace')
 const alias = require('rollup-plugin-alias')
+const uglify = require('rollup-plugin-uglify')
 const version = process.env.VERSION || require('../package.json').version
 const weexVersion = process.env.WEEX_VERSION || require('../packages/weex-vue-framework/package.json').version
 
@@ -136,7 +137,17 @@ const builds = {
     uneed2d: true,
     entry: path.resolve(__dirname, '../src/entries/uneed2d-framework.js'),
     dest: path.resolve(__dirname, '../dist/vue.uneed2d.js'),
+    plugins: [
+      uglify()
+    ],
     env: 'production',
+    format: 'umd'
+  },
+  'uneed2d-framework-dev': {
+    uneed2d: true,
+    entry: path.resolve(__dirname, '../src/entries/uneed2d-framework.js'),
+    dest: path.resolve(__dirname, '../dist/vue.uneed2d.dev.js'),
+    env: 'development',
     format: 'umd'
   },
   'uneed2d-full': {
