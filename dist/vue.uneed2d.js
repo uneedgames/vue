@@ -384,7 +384,6 @@ function parsePath (path) {
 /*  */
 /* globals MutationObserver */
 
-// can we use __proto__?
 var hasProto = '__proto__' in {};
 
 // Browser environment sniffing
@@ -569,9 +568,6 @@ Dep.prototype.notify = function notify () {
   }
 };
 
-// the current target watcher being evaluated.
-// this is globally unique because there could be only one
-// watcher being evaluated at any time.
 Dep.target = null;
 var targetStack = [];
 
@@ -874,18 +870,10 @@ function dependArray (value) {
 
 /*  */
 
-/**
- * Option overwriting strategies are functions that handle
- * how to merge a parent option value and a child option
- * value into the final value.
- */
 var strats = config.optionMergeStrategies;
 
 /**
  * Options with restrictions
- */
-/**
- * Helper that recursively merges two data objects together.
  */
 function mergeData (to, from) {
   if (!from) { return to }
@@ -1045,8 +1033,7 @@ var defaultStrat = function (parentVal, childVal) {
 };
 
 /**
- * Ensure all props option syntax are normalized into the
- * Object-based format.
+ * Validate component names
  */
 function normalizeProps (options) {
   var props = options.props;
@@ -1230,9 +1217,7 @@ function getPropDefaultValue (vm, prop, key) {
 }
 
 /**
- * Use function string name to check built-in types,
- * because a simple equality check will fail when running
- * across different vms / iframes.
+ * Assert whether a prop is valid.
  */
 function getType (fn) {
   var match = fn && fn.toString().match(/^\s*function (\w+)/);
@@ -1452,18 +1437,6 @@ function mergeVNodeHook (def, hookKey, hook) {
 
 /*  */
 
-// The template compiler attempts to minimize the need for normalization by
-// statically analyzing the template at compile time.
-//
-// For plain HTML markup, normalization can be completely skipped because the
-// generated render function is guaranteed to return Array<VNode>. There are
-// two cases where extra normalization is needed:
-
-// 1. When the children contains components - because a functional component
-// may return an Array instead of a single root. In this case, just a simple
-// normalization is needed - if any child is an Array, we flatten the whole
-// thing with Array.prototype.concat. It is guaranteed to be only 1-level deep
-// because functional components already normalize their own children.
 function simpleNormalizeChildren (children) {
   for (var i = 0; i < children.length; i++) {
     if (Array.isArray(children[i])) {
@@ -2282,11 +2255,6 @@ Watcher.prototype.teardown = function teardown () {
   }
 };
 
-/**
- * Recursively traverse an object to evoke all converted
- * getters, so that every nested property inside the object
- * is collected as a "deep" dependency.
- */
 var seenObjects = new _Set();
 function traverse (val) {
   seenObjects.clear();
@@ -2536,7 +2504,6 @@ function stateMixin (Vue) {
 
 /*  */
 
-// hooks to be invoked on component VNodes during patch
 var componentVNodeHooks = {
   init: function init (
     vnode,
@@ -2972,9 +2939,6 @@ function applyNS (vnode, ns) {
 
 /*  */
 
-/**
- * Runtime helper for rendering v-for lists.
- */
 function renderList (
   val,
   render
@@ -3003,9 +2967,6 @@ function renderList (
 
 /*  */
 
-/**
- * Runtime helper for rendering <slot>
- */
 function renderSlot (
   name,
   fallback,
@@ -3036,18 +2997,12 @@ function renderSlot (
 
 /*  */
 
-/**
- * Runtime helper for resolving filters
- */
 function resolveFilter (id) {
   return resolveAsset(this.$options, 'filters', id, true) || identity
 }
 
 /*  */
 
-/**
- * Runtime helper for checking keyCodes from config.
- */
 function checkKeyCodes (
   eventKeyCode,
   key,
@@ -3063,9 +3018,6 @@ function checkKeyCodes (
 
 /*  */
 
-/**
- * Runtime helper for merging v-bind="object" into a VNode's data.
- */
 function bindObjectProps (
   data,
   tag,
@@ -3103,9 +3055,6 @@ function bindObjectProps (
 
 /*  */
 
-/**
- * Runtime helper for rendering static trees.
- */
 function renderStatic (
   index,
   isInFor
@@ -4625,8 +4574,6 @@ var platformModules = [
 
 /*  */
 
-// the directive module should be applied last, after all
-// built-in modules have been applied.
 var modules = platformModules.concat(baseModules);
 
 var patch = createPatchFunction({
@@ -4645,14 +4592,14 @@ var createFakeElement = function(name, createElement, children) {
 
 var UN$1 = window.UN;
 
-/**
- * 需要直接set到$object的props
- */
 var objectProps = {
   x: {
     type: Number
   },
   y: {
+    type: Number
+  },
+  scale: {
     type: Number
   },
   scaleX: {
@@ -4664,10 +4611,16 @@ var objectProps = {
   rotation: {
     type: Number
   },
+  pivot: {
+    type: Number
+  },
   pivotX: {
     type: Number
   },
   pivotY: {
+    type: Number
+  },
+  skew: {
     type: Number
   },
   skewX: {
@@ -4697,6 +4650,9 @@ var objectMixin = function (name) {
           break
         case 'sprite':
           this.$object = new UN$1.Sprite();
+          break
+        case 'text':
+          this.$object = new UN$1.Text();
           break
       }
     },
@@ -4755,7 +4711,16 @@ var objectMixin = function (name) {
       },
       
       setProp: function setProp (key, val) {
-        this.$object[key] = val;
+        switch(key) {
+          case 'anchor':
+          case 'scale':
+          case 'skew':
+          case 'pivot':
+            this.$object[key].set(val);
+            break
+          default: 
+            this.$object[key] = val;
+        }
       },
 
       listenEvents: function listenEvents () {
@@ -4799,7 +4764,26 @@ var Sprite = {
   }
 };
 
-var REGEX_POSITION = /((top left)|(top right)|(bottom left)|(bottom right))/i;
+var textProps = {
+  anchor: Number,
+  anchorX: Number,
+  anchorY: Number,
+  text: String,
+  style: Object
+};
+
+var propKeys$2 = Object.keys(textProps);
+
+var Text = {
+  mixins: [objectMixin('text')],
+  props: textProps,
+  created: function created () {
+    this.updatePropsByKeys(propKeys$2);
+    this.watchKeys(propKeys$2);
+  }
+};
+
+var REGEX_POSITION = /^((left|center|right) (top|middle|bottom))$/i;
 
 var Layout = {
 
@@ -4847,19 +4831,22 @@ var Layout = {
     },
 
     doLayout: function doLayout() {
-      switch(this.position) {
-        case 'top left':
-          this.$object.position.set(0);
-        break
-        case 'top right':
-          this.$object.position.set(UN$1.stage.width, 0);
-        break
-        case 'bottom left':
-          this.$object.position.set(0, UN$1.stage.height);
-        break
-        case 'bottom right':
-          this.$object.position.set(UN$1.stage.width, UN$1.stage.height);
-        break
+      var pos = this.position.split(' ');
+      var align = pos[0];
+      var valign = pos[1];
+      if(align === 'left') {
+        this.$object.x = 0;
+      } else if(align === 'center') {
+        this.$object.x = UN$1.stage.width/2;
+      } else {
+        this.$object.x = UN$1.stage.width;
+      }
+      if(valign === 'top') {
+        this.$object.y = 0;
+      } else if(valign === 'middle') {
+        this.$object.y = UN$1.stage.height/2;
+      } else {
+        this.$object.y = UN$1.stage.height;
       }
     }
 
@@ -4870,6 +4857,7 @@ var Layout = {
 var platformComponents = {
   Entity: Entity,
   Sprite: Sprite,
+  Text: Text,
   Layout: Layout,
 };
 
@@ -4900,7 +4888,6 @@ function isUnknownElement (tag) {
 
 /*  */
 
-// install platform specific utils
 Vue$4.config.mustUseProp = mustUseProp;
 Vue$4.config.isReservedTag = isReservedTag;
 Vue$4.config.isUnknownElement = isUnknownElement;
@@ -4978,7 +4965,6 @@ Vue$4.initWith = function (container, Component) {
   stage.vue = new Vue$4({
     mixins: [layoutMixin, containerMixin(container)],
     render: function render(createElement) {
-      console.log('render');
       return createElement(Component)
     }
   });
@@ -4991,8 +4977,6 @@ if(typeof window !== 'undefined' && window.UN) {
 
 /*  */
 
-// devtools global hook
-/* istanbul ignore next */
 setTimeout(function () {
   if (config.devtools) {
     if (devtools) {

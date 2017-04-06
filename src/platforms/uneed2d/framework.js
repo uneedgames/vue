@@ -47,7 +47,6 @@ Vue.initWith = function (container, Component) {
   stage.vue = new Vue({
     mixins: [layoutMixin, containerMixin(container)],
     render(createElement) {
-      console.log('render')
       return createElement(Component)
     }
   })

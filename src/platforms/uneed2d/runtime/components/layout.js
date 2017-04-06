@@ -2,7 +2,7 @@ import UN from 'uneed2d/engine'
 import createFakeElement from './createFakeElement'
 
 const REGEX_PERCENT = /\d%$/
-const REGEX_POSITION = /((top left)|(top right)|(bottom left)|(bottom right))/i
+const REGEX_POSITION = /^((left|center|right) (top|middle|bottom))$/i
 
 function numberAndPecentProp() {
   return {
@@ -64,19 +64,22 @@ export default {
     },
 
     doLayout() {
-      switch(this.position) {
-        case 'top left':
-          this.$object.position.set(0)
-        break
-        case 'top right':
-          this.$object.position.set(UN.stage.width, 0)
-        break
-        case 'bottom left':
-          this.$object.position.set(0, UN.stage.height)
-        break
-        case 'bottom right':
-          this.$object.position.set(UN.stage.width, UN.stage.height)
-        break
+      let pos = this.position.split(' ')
+      let align = pos[0]
+      let valign = pos[1]
+      if(align === 'left') {
+        this.$object.x = 0
+      } else if(align === 'center') {
+        this.$object.x = UN.stage.width/2
+      } else {
+        this.$object.x = UN.stage.width
+      }
+      if(valign === 'top') {
+        this.$object.y = 0
+      } else if(valign === 'middle') {
+        this.$object.y = UN.stage.height/2
+      } else {
+        this.$object.y = UN.stage.height
       }
     }
 

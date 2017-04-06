@@ -5119,6 +5119,9 @@ var objectProps = {
   y: {
     type: Number
   },
+  scale: {
+    type: Number
+  },
   scaleX: {
     type: Number
   },
@@ -5128,10 +5131,16 @@ var objectProps = {
   rotation: {
     type: Number
   },
+  pivot: {
+    type: Number
+  },
   pivotX: {
     type: Number
   },
   pivotY: {
+    type: Number
+  },
+  skew: {
     type: Number
   },
   skewX: {
@@ -5161,6 +5170,9 @@ var objectMixin = function (name) {
           break
         case 'sprite':
           this.$object = new UN$1.Sprite();
+          break
+        case 'text':
+          this.$object = new UN$1.Text();
           break
       }
     },
@@ -5219,6 +5231,14 @@ var objectMixin = function (name) {
       },
       
       setProp: function setProp (key, val) {
+        switch(key) {
+          case 'anchor':
+          case 'scale':
+          case 'skew':
+          case 'pivot':
+            this.$object[key].set(val);
+            break
+        }
         this.$object[key] = val;
       },
 
@@ -5263,7 +5283,26 @@ var Sprite = {
   }
 };
 
-var REGEX_POSITION = /((top left)|(top right)|(bottom left)|(bottom right))/i;
+var textProps = {
+  anchor: Number,
+  anchorX: Number,
+  anchorY: Number,
+  text: String,
+  style: Object
+};
+
+var propKeys$2 = Object.keys(textProps);
+
+var Text = {
+  mixins: [objectMixin('text')],
+  props: textProps,
+  created: function created () {
+    this.updatePropsByKeys(propKeys$2);
+    this.watchKeys(propKeys$2);
+  }
+};
+
+var REGEX_POSITION = /^((left|center|right) (top|middle|bottom))$/i;
 
 var Layout = {
 
@@ -5311,19 +5350,22 @@ var Layout = {
     },
 
     doLayout: function doLayout() {
-      switch(this.position) {
-        case 'top left':
-          this.$object.position.set(0);
-        break
-        case 'top right':
-          this.$object.position.set(UN$1.stage.width, 0);
-        break
-        case 'bottom left':
-          this.$object.position.set(0, UN$1.stage.height);
-        break
-        case 'bottom right':
-          this.$object.position.set(UN$1.stage.width, UN$1.stage.height);
-        break
+      var pos = this.position.split(' ');
+      var align = pos[0];
+      var valign = pos[1];
+      if(align === 'left') {
+        this.$object.x = 0;
+      } else if(align === 'center') {
+        this.$object.x = UN$1.stage.width/2;
+      } else {
+        this.$object.x = UN$1.stage.width;
+      }
+      if(valign === 'top') {
+        this.$object.y = 0;
+      } else if(valign === 'middle') {
+        this.$object.y = UN$1.stage.height/2;
+      } else {
+        this.$object.y = UN$1.stage.height;
       }
     }
 
@@ -5334,6 +5376,7 @@ var Layout = {
 var platformComponents = {
   Entity: Entity,
   Sprite: Sprite,
+  Text: Text,
   Layout: Layout,
 };
 

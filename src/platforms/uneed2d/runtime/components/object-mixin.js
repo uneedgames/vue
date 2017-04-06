@@ -11,6 +11,9 @@ const objectProps = {
   y: {
     type: Number
   },
+  scale: {
+    type: Number
+  },
   scaleX: {
     type: Number
   },
@@ -20,10 +23,16 @@ const objectProps = {
   rotation: {
     type: Number
   },
+  pivot: {
+    type: Number
+  },
   pivotX: {
     type: Number
   },
   pivotY: {
+    type: Number
+  },
+  skew: {
     type: Number
   },
   skewX: {
@@ -53,6 +62,9 @@ export default function (name) {
           break
         case 'sprite':
           this.$object = new UN.Sprite()
+          break
+        case 'text':
+          this.$object = new UN.Text()
           break
       }
     },
@@ -107,7 +119,16 @@ export default function (name) {
       },
       
       setProp (key, val) {
-        this.$object[key] = val
+        switch(key) {
+          case 'anchor':
+          case 'scale':
+          case 'skew':
+          case 'pivot':
+            this.$object[key].set(val)
+            break
+          default: 
+            this.$object[key] = val
+        }
       },
 
       listenEvents () {
