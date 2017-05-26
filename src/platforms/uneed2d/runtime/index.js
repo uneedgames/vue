@@ -5,6 +5,7 @@ import { patch } from 'uneed2d/runtime/patch'
 import { mountComponent } from 'core/instance/lifecycle'
 import platformDirectives from 'uneed2d/runtime/directives/index'
 import platformComponents from 'uneed2d/runtime/components/index'
+import UN from 'uneed2d/engine'
 
 import {
   mustUseProp,
@@ -43,5 +44,11 @@ Vue.prototype.$getParentObject = function() {
   }
   return parent && parent.$object
 }
+
+Vue.prototype.emitBus = function() {
+  let bus = UN.stage.eventBus
+  bus.emit.apply(bus, arguments)
+}
+
 
 export default Vue

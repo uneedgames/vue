@@ -43,18 +43,13 @@ export default {
   mounted() {
     this.$getParentObject().addChild(this.$object)
   },
-
-  beforeDestroy() {
-    this.$getParentObject().removeChild(this.$object)
-  },
   
   destroyed() {
     UN.stage.off('resize', this.onStageResize, this)
-    this.$object.destroy()
   },
 
   render(createElement) {
-    return createFakeElement(name, createElement, this.$slots.default)
+    return createFakeElement('layout', createElement, this.$slots.default)
   },
 
   methods: {

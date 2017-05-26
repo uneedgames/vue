@@ -1,10 +1,9 @@
 /* @flow */
 import { makeMap } from 'shared/util'
 
-export const isReservedTag = makeMap(
-  'fake-element',
-  true
-)
+export const isReservedTag = function(tag: string) {
+  return /^un\-/.test(tag)
+}
 
 // Elements that you can, intentionally, leave open (and which close themselves)
 // more flexable than web

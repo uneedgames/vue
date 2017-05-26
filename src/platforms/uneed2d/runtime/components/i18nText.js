@@ -1,19 +1,19 @@
 import objectMixin from './object-mixin'
 import UN from 'uneed2d/engine'
 
-const textProps = {
+const props = {
   anchor: Number,
   anchorX: Number,
   anchorY: Number,
-  text: String,
+  i18nKey: String,
   textStyle: Object
 }
 
-const propKeys = Object.keys(textProps)
+const propKeys = Object.keys(props)
 
 export default {
-  mixins: [objectMixin('text')],
-  props: textProps,
+  mixins: [objectMixin('i18n-text')],
+  props: props,
   created () {
     this.updatePropsByKeys(propKeys, (key, val) => this.updateTextProp(key, val))
     this.watchKeys(propKeys, (key, val, oldVal) => this.updateTextProp(key, val))

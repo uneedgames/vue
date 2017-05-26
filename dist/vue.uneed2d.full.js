@@ -4,6 +4,8 @@
 	(global.Vue = factory());
 }(this, (function () { 'use strict';
 
+var UN = window.UN;
+
 /*  */
 
 /**
@@ -4177,7 +4179,7 @@ Element$1.prototype.setAttribute = function setAttribute (key, value) {
 Element$1.prototype.insertBefore = function insertBefore (newNode, referenceNode) {
   var idx = this.children.indexOf(referenceNode);
   if (idx === -1) {
-    throw new Error('can not find child node: ' + referenceNode)
+    return
   }
   this.children.splice(idx, 0, newNode);
   newNode.parentNode = this;
@@ -4194,7 +4196,7 @@ Element$1.prototype.appendChild = function appendChild (childNode) {
 Element$1.prototype.removeChild = function removeChild (childNode) {
   var idx = this.children.indexOf(childNode);
   if (idx === -1) {
-    throw new Error('can not find child node: ' + childNode)
+    return
   }
   this.children.splice(idx, 1);
   childNode.parentNode = null;
@@ -4217,17 +4219,23 @@ function isHTMLElement (node) {
 }
 
 function createElement$1 (tagName, vnode) {
+  var elm;
   if ("development" !== 'production' || UN.vue.DEBUG) {
-    return document.createElement(tagName)
+    elm = document.createElement(tagName);
+  } else {
+    elm = new Element$1(tagName);
   }
-  return new Element$1(tagName)
+  return elm
 }
 
 function createElementNS (namespace, tagName) {
+  var elm;
   if ("development" !== 'production' || UN.vue.DEBUG) {
-    return document.createElementNS(tagName)
+    elm = document.createElementNS(namespace, tagName);
+  } else {
+    elm = new Element$1(namespace + ':' + tagName);
   }
-  return new Element$1(namespace + ':' + tagName)
+  return elm
 }
 
 function createTextNode (text) {
@@ -5110,12 +5118,10 @@ var platformDirectives = {
 };
 
 var createFakeElement = function(name, createElement, children) {
-  var elt = createElement('fake-element', children);
+  var elt = createElement('un-' + name, children && children.filter(function (c) { return c.tag; }) || null);
   elt.fakeName = name || 'unknow';
   return elt
 };
-
-var UN$1 = window.UN;
 
 /**
  * 需要直接set到$object的props
@@ -5158,34 +5164,56 @@ var objectProps = {
     type: Number
   },
   alpha: {
-    type: Number
+    type: Number,
+    default: 1
   },
   interactive: {
     type: Boolean
+  },
+  hitArea: [Object, String, Number],
+  tint: {
+    type: Number,
+    default: 0xFFFFFF
+  },
+  active: {
+    type: Boolean,
+    default: true
+  },
+  visible: {
+    type: Boolean,
+    default: true
   }
 };
 
 var propKeys = Object.keys(objectProps);
 
 var objectMixin = function (name) {
-  return {
+  var mixin = {
+
     props: objectProps,
 
-    beforeCreate: function beforeCreate () {
+    created: function created () {
       switch (name) {
         case 'entity':
-          this.$object = new UN$1.Entity();
+          this.$object = new UN.Entity();
           break
         case 'sprite':
-          this.$object = new UN$1.Sprite();
+          this.$object = new UN.Sprite();
           break
         case 'text':
-          this.$object = new UN$1.Text();
+          this.$object = new UN.Text();
+          break
+        case 'animatedSprite':
+          var textures = this.textures.map(function (id) { return UN.utils.TextureCache[id]; });
+          this.$object = new UN.extras.AnimatedSprite(textures);
+          break
+        case 'i18n-text':
+          this.$object = new UN.i18n.Text(this.i18nKey);
+          break
+        case 'i18n-sprite':
+          this.$object = new UN.i18n.Sprite(this.i18nKey);
           break
       }
-    },
-
-    created: function created () {
       this.updatePropsByKeys(propKeys);
       this.watchKeys(propKeys);
       this.listenEvents();
@@ -5193,14 +5221,6 @@ var objectMixin = function (name) {
 
     mounted: function mounted () {
       this.$getParentObject().addChild(this.$object);
-    },
-
-    beforeDestroy: function beforeDestroy () {
-      this.$getParentObject().removeChild(this.$object);
-    },
-
-    destroyed: function destroyed () {
-      this.$object.destroy();
     },
 
     render: function render (createElement) {
@@ -5237,16 +5257,32 @@ var objectMixin = function (name) {
           this.setProp(key, val);
         }
       },
-      
+
       setProp: function setProp (key, val) {
-        switch(key) {
+        switch (key) {
           case 'anchor':
           case 'scale':
           case 'skew':
           case 'pivot':
             this.$object[key].set(val);
             break
-          default: 
+          case 'text':
+            this.$object.setText(val);
+            break
+          case 'texture':
+            this.$object.texture = UN.Texture.fromImage(val);
+            break
+          case 'hitArea':
+            if (typeof val === 'string') {
+              var values = val.split(',').map(function (val) { return parseInt(val); });
+              this.$object.hitArea = new (Function.prototype.bind.apply( UN.Rectangle, [ null ].concat( values) ));
+            } else if (val === Infinity) {
+              this.$object.hitArea = UN.infinityRectangle();
+            } else {
+              this.$object.hitArea = new UN.Rectangle(val.x, val.y, val.width, val.height);
+            }
+            break
+          default:
             this.$object[key] = val;
         }
       },
@@ -5263,11 +5299,19 @@ var objectMixin = function (name) {
         this.$object.on('pointerup', function (e) {
           this$1.$emit('pointerup', e);
         });
+        this.$object.on('pointerout', function (e) {
+          this$1.$emit('pointerout', e);
+        });
+        this.$object.on('pointerover', function (e) {
+          this$1.$emit('pointerover', e);
+        });
       }
 
     }
 
-  }
+  };
+
+  return mixin
 };
 
 var Entity = {
@@ -5275,7 +5319,7 @@ var Entity = {
 };
 
 var spriteProps = {
-  texture: UN$1.Texture,
+  texture: String,
   anchor: Number,
   anchorX: Number,
   anchorY: Number
@@ -5312,8 +5356,8 @@ var Text = {
     this.watchKeys(propKeys$2, function (key, val, oldVal) { return this$1.updateTextProp(key, val); });
   },
   methods: {
-    updateTextProp: function updateTextProp(key, val) {
-      if(key === 'textStyle') {
+    updateTextProp: function updateTextProp (key, val) {
+      if (key === 'textStyle') {
         this.$object.style = val;
       } else {
         this.setPropIfNotVoid0(key, val);
@@ -5338,29 +5382,24 @@ var Layout = {
 
   beforeCreate: function beforeCreate() {
     this.isLayout = true;
-    this.$object = new UN$1.Entity();
+    this.$object = new UN.Entity();
   },
 
   created: function created() {
     this.doLayout();
-    UN$1.stage.on('resize', this.onStageResize, this);
+    UN.stage.on('resize', this.onStageResize, this);
   },
 
   mounted: function mounted() {
     this.$getParentObject().addChild(this.$object);
   },
-
-  beforeDestroy: function beforeDestroy() {
-    this.$getParentObject().removeChild(this.$object);
-  },
   
   destroyed: function destroyed() {
-    UN$1.stage.off('resize', this.onStageResize, this);
-    this.$object.destroy();
+    UN.stage.off('resize', this.onStageResize, this);
   },
 
   render: function render(createElement) {
-    return createFakeElement(name, createElement, this.$slots.default)
+    return createFakeElement('layout', createElement, this.$slots.default)
   },
 
   methods: {
@@ -5376,16 +5415,16 @@ var Layout = {
       if(align === 'left') {
         this.$object.x = 0;
       } else if(align === 'center') {
-        this.$object.x = UN$1.stage.width/2;
+        this.$object.x = UN.stage.width/2;
       } else {
-        this.$object.x = UN$1.stage.width;
+        this.$object.x = UN.stage.width;
       }
       if(valign === 'top') {
         this.$object.y = 0;
       } else if(valign === 'middle') {
-        this.$object.y = UN$1.stage.height/2;
+        this.$object.y = UN.stage.height/2;
       } else {
-        this.$object.y = UN$1.stage.height;
+        this.$object.y = UN.stage.height;
       }
     }
 
@@ -5393,18 +5432,302 @@ var Layout = {
 
 };
 
+var animatedSpriteProps = {
+  textures: Array,
+  anchor: Number,
+  anchorX: Number,
+  anchorY: Number,
+  animationSpeed: {
+    type: Number,
+    default: 1,
+    required: false
+  },
+  autoplay: {
+    type: Boolean,
+    default: true,
+    required: false
+  }
+};
+
+var propKeys$3 = Object.keys(animatedSpriteProps).filter(function (key) { return key !== 'textures'; });
+
+var AnimatedSprite = {
+  mixins: [objectMixin('animatedSprite')],
+  props: animatedSpriteProps,
+  created: function created () {
+    this.updatePropsByKeys(propKeys$3);
+    this.watchKeys(propKeys$3);
+    if(this.autoplay) {
+      this.$object.play();
+    }
+  }
+};
+
+var Tween = {
+  name: 'tween',
+
+  props: {
+    show: {
+      type: Function,
+      required: false
+    },
+    hide: {
+      type: Function,
+      required: false
+    },
+    onEnter: {
+      type: Function,
+      required: false
+    },
+    onLeft: {
+      type: Function,
+      required: false
+    }
+  },
+
+  render: function render(h) {
+    return createFakeElement('tween', h, this.$slots.default)
+  },
+
+  mounted: function mounted() {
+    this.performEnter();
+  },
+
+  beforeDestroy: function beforeDestroy() {
+    setDontDestroyBySelf(this);
+  },
+
+  destroyed: function destroyed() {
+    this.performLeave();
+  },
+
+  data: function data() {
+    return {
+      __isTween: true,
+      entered: false,
+      left: false,
+      resolveTweenPromise: null,
+      resolve: null
+    }
+  },
+
+  methods: {
+
+    resolveTween: function resolveTween() {
+      var this$1 = this;
+
+      if(this.left) { return }
+      this.resolveTweenPromise = this.resolveTweenPromise || new Promise(function (resolve) {
+        if(this$1.left) {
+          resolve();
+          return
+        }
+        this$1.resolve = resolve;
+      });
+    },
+
+    performEnter: function performEnter() {
+      var this$1 = this;
+
+      return Promise.all(this.$children.map(function (child) {
+        var obj = getChildObject(child);
+        if(!obj) { return }
+        obj.tween.clear();
+        return this$1.show && this$1.show(obj)
+      })).then(function () {
+        this$1.entered = true;
+        this$1.onEnter && this$1.onEnter();
+      })
+    },
+
+    performLeave: function performLeave() {
+      var this$1 = this;
+
+      return Promise.all(this.$children.map(function (child) {
+        var obj = getChildObject(child);
+        if(!obj) { return }
+        obj.tween.clear();
+        return this$1.hide && this$1.hide(obj).then(function () {
+          obj.destroy({
+            children: true
+          });
+        })
+      })).then(function () {
+        this$1.left = true;
+        this$1.resolve && this$1.resolve();
+        this$1.onLeft && this$1.onLeft();
+      })
+    }
+  }
+};
+
+
+function setDontDestroyBySelf(vm) {
+  vm.$children.forEach(function (child) {
+    child.__dontDestroyBySelf = true;
+    setDontDestroyBySelf(child);
+  });
+}
+
+
+function searchTweenComps(vm, tweenComps) {
+  vm.$children.forEach(function (child) {
+    if(child.__isTween) {
+      tweenComps.push(child);
+    }
+    searchTweenComps(child, tweenComps);
+  });
+}
+
+function getChildObject(vm) {
+  if(!vm) { return null }
+  if(vm.$object) { return vm.$object }
+  return getChildObject(vm.$children[0])
+}
+
+
+Vue$5.mixin({
+
+  data: function data() {
+    return {
+      __dontDestroyBySelf: false
+    }
+  },
+
+  destroyed: function destroyed () {
+    var this$1 = this;
+
+    if(this.__dontDestroyBySelf) {
+      return
+    }
+    // resolve children tweens
+    var tweenComps = [];
+    searchTweenComps(this, tweenComps);
+    if(tweenComps.length === 0) {
+      this.$object && this.$object.destroy();
+      return
+    }
+    return Promise.all(tweenComps.map(function (tweenCom) {
+      return tweenCom.resolveTween()
+    })).then(function () {
+      this$1.$object && this$1.$object.destroy();
+    })
+  }
+
+});
+
+Vue$5.prototype.$tween = function() {
+  return new TweenBuilder()
+};
+
+var TweenBuilder = function TweenBuilder () {};
+
+TweenBuilder.prototype.delay = function delay (time) {
+  this.delayTime = time;
+  return this
+};
+
+TweenBuilder.prototype.from = function from (key, value, time, func) {
+    var this$1 = this;
+    if ( time === void 0 ) time=1000;
+    if ( func === void 0 ) func="quadIn";
+
+  return function (obj) {
+    var target = {};
+    target[key] = obj[key];
+    obj[key] = value;
+    if(this$1.delayTime) {
+      var scheduler = obj.scheduler || obj.stage.scheduler;
+      return scheduler.wait(this$1.delayTime).then(function () { return obj.tween[func](target, time).promise(); })
+    }
+    return obj.tween[func](target, time).promise()
+  }
+};
+
+TweenBuilder.prototype.slideDown = function slideDown (fromY, time) {
+    if ( fromY === void 0 ) fromY=-500;
+    if ( time === void 0 ) time=500;
+
+  return this.from('y', fromY, time)
+};
+
+TweenBuilder.prototype.slideUp = function slideUp (fromY, time) {
+    if ( fromY === void 0 ) fromY=2500;
+    if ( time === void 0 ) time=500;
+
+  return this.from('y', fromY, time)
+};
+
+TweenBuilder.prototype.scaleOut = function scaleOut (fromScale, time) {
+    if ( fromScale === void 0 ) fromScale=0;
+    if ( time === void 0 ) time=500;
+
+  return this.from('scaleXY', fromScale, time, 'backOut')
+};
+
+var props = {
+  anchor: Number,
+  anchorX: Number,
+  anchorY: Number,
+  i18nKey: String,
+  textStyle: Object
+};
+
+var propKeys$4 = Object.keys(props);
+
+var I18nText = {
+  mixins: [objectMixin('i18n-text')],
+  props: props,
+  created: function created () {
+    var this$1 = this;
+
+    this.updatePropsByKeys(propKeys$4, function (key, val) { return this$1.updateTextProp(key, val); });
+    this.watchKeys(propKeys$4, function (key, val, oldVal) { return this$1.updateTextProp(key, val); });
+  },
+  methods: {
+    updateTextProp: function updateTextProp (key, val) {
+      if (key === 'textStyle') {
+        this.$object.style = val;
+      } else {
+        this.setPropIfNotVoid0(key, val);
+      }
+    }
+  }
+};
+
+var props$1 = {
+  i18nKey: String,
+  anchor: Number,
+  anchorX: Number,
+  anchorY: Number
+};
+
+var propKeys$5 = Object.keys(props$1);
+
+var I18nSprite = {
+  mixins: [objectMixin('i18n-sprite')],
+  props: propKeys$5,
+  created: function created () {
+    this.updatePropsByKeys(propKeys$5);
+    this.watchKeys(propKeys$5);
+  }
+};
+
 var platformComponents = {
+  Tween: Tween,
   Entity: Entity,
   Sprite: Sprite,
   Text: Text,
   Layout: Layout,
+  AnimatedSprite: AnimatedSprite,
+  I18nText: I18nText,
+  I18nSprite: I18nSprite
 };
 
 /*  */
-var isReservedTag = makeMap(
-  'fake-element',
-  true
-);
+var isReservedTag = function(tag) {
+  return /^un\-/.test(tag)
+};
 
 // Elements that you can, intentionally, leave open (and which close themselves)
 // more flexable than web
@@ -5459,37 +5782,41 @@ Vue$5.prototype.$getParentObject = function() {
   return parent && parent.$object
 };
 
+Vue$5.prototype.emitBus = function() {
+  var bus = UN.stage.eventBus;
+  bus.emit.apply(bus, arguments);
+};
+
 var layoutMixin = {
-  data: function data() {
+  data: function data () {
     return {
       contentSize: {
-        width: UN.stage.width,
-        height: UN.stage.height
+        width: 0,
+        height: 0
       }
     }
   },
-  created: function created() {
+  created: function created () {
+    this.contentSize.width = UN.stage.width;
+    this.contentSize.height = UN.stage.height;
     UN.stage.on('resize', this.onStageResize, this);
   },
-  destroyed: function destroyed() {
+  destroyed: function destroyed () {
     UN.stage.off('resize', this.onStageResize, this);
   },
 
   methods: {
-    onStageResize: function onStageResize() {
+    onStageResize: function onStageResize () {
       this.contentSize.width = UN.stage.width;
       this.contentSize.height = UN.stage.height;
-    },
+    }
   }
 };
 
-function containerMixin(container) {
+function containerMixin (container) {
   return {
-    created: function created() {
+    created: function created () {
       this.$object = container;
-    },
-    destroyed: function destroyed() {
-      this.$object.destroy();
     }
   }
 }
@@ -5502,16 +5829,28 @@ Vue$5.initWith = function (container, Component) {
   vueStage.id = ROOT;
   vueStage.style.display = 'none';
   parent.appendChild(vueStage);
-  stage.vue = new Vue$5({
+  container.vue = new Vue$5({
     mixins: [layoutMixin, containerMixin(container)],
-    render: function render(createElement) {
+    render: function render (createElement) {
       return createElement(Component)
+    },
+    mounted: function mounted () {
+      var refs = this.$children[0].$refs;
+      Object.keys(refs).forEach(function (key) {
+        if (container[key] == void 0) {
+          if (refs[key].$object) {
+            container[key] = refs[key].$object;
+          } else {
+            container[key] = refs[key];
+          }
+        }
+      });
     }
   });
-  stage.vue.$mount(vueStage);
+  container.vue.$mount(vueStage);
 };
 
-if(typeof window !== 'undefined' && window.UN) {
+if (typeof window !== 'undefined' && window.UN) {
   UN.vue = Vue$5.initWith;
 }
 

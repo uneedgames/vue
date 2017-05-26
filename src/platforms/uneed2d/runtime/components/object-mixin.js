@@ -42,20 +42,35 @@ const objectProps = {
     type: Number
   },
   alpha: {
-    type: Number
+    type: Number,
+    default: 1
   },
   interactive: {
     type: Boolean
+  },
+  hitArea: [Object, String, Number],
+  tint: {
+    type: Number,
+    default: 0xFFFFFF
+  },
+  active: {
+    type: Boolean,
+    default: true
+  },
+  visible: {
+    type: Boolean,
+    default: true
   }
 }
 
 const propKeys = Object.keys(objectProps)
 
 export default function (name) {
-  return {
+  const mixin = {
+
     props: objectProps,
 
-    beforeCreate () {
+    created () {
       switch (name) {
         case 'entity':
           this.$object = new UN.Entity()
@@ -66,10 +81,17 @@ export default function (name) {
         case 'text':
           this.$object = new UN.Text()
           break
+        case 'animatedSprite':
+          const textures = this.textures.map(id => UN.utils.TextureCache[id])
+          this.$object = new UN.extras.AnimatedSprite(textures)
+          break
+        case 'i18n-text':
+          this.$object = new UN.i18n.Text(this.i18nKey)
+          break
+        case 'i18n-sprite':
+          this.$object = new UN.i18n.Sprite(this.i18nKey)
+          break
       }
-    },
-
-    created () {
       this.updatePropsByKeys(propKeys)
       this.watchKeys(propKeys)
       this.listenEvents()
@@ -77,14 +99,6 @@ export default function (name) {
 
     mounted () {
       this.$getParentObject().addChild(this.$object)
-    },
-
-    beforeDestroy () {
-      this.$getParentObject().removeChild(this.$object)
-    },
-
-    destroyed () {
-      this.$object.destroy()
     },
 
     render (createElement) {
@@ -117,16 +131,32 @@ export default function (name) {
           this.setProp(key, val)
         }
       },
-      
+
       setProp (key, val) {
-        switch(key) {
+        switch (key) {
           case 'anchor':
           case 'scale':
           case 'skew':
           case 'pivot':
             this.$object[key].set(val)
             break
-          default: 
+          case 'text':
+            this.$object.setText(val)
+            break
+          case 'texture':
+            this.$object.texture = UN.Texture.fromImage(val)
+            break
+          case 'hitArea':
+            if (typeof val === 'string') {
+              const values = val.split(',').map(val => parseInt(val))
+              this.$object.hitArea = new UN.Rectangle(...values)
+            } else if (val === Infinity) {
+              this.$object.hitArea = UN.infinityRectangle()
+            } else {
+              this.$object.hitArea = new UN.Rectangle(val.x, val.y, val.width, val.height)
+            }
+            break
+          default:
             this.$object[key] = val
         }
       },
@@ -141,9 +171,17 @@ export default function (name) {
         this.$object.on('pointerup', (e) => {
           this.$emit('pointerup', e)
         })
+        this.$object.on('pointerout', (e) => {
+          this.$emit('pointerout', e)
+        })
+        this.$object.on('pointerover', (e) => {
+          this.$emit('pointerover', e)
+        })
       }
 
     }
 
   }
+
+  return mixin
 }

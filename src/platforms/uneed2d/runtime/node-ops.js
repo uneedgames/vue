@@ -1,3 +1,4 @@
+import UN from '../engine'
 import * as CONST from '../const'
 import U2DElement from './element'
 
@@ -12,17 +13,23 @@ function isHTMLElement (node) {
 }
 
 export function createElement (tagName, vnode) {
+  let elm
   if (process.env.NODE_ENV !== 'production' || UN.vue.DEBUG) {
-    return document.createElement(tagName)
+    elm = document.createElement(tagName)
+  } else {
+    elm = new U2DElement(tagName)
   }
-  return new U2DElement(tagName)
+  return elm
 }
 
 export function createElementNS (namespace, tagName) {
+  let elm
   if (process.env.NODE_ENV !== 'production' || UN.vue.DEBUG) {
-    return document.createElementNS(tagName)
+    elm = document.createElementNS(namespace, tagName)
+  } else {
+    elm = new U2DElement(namespace + ':' + tagName)
   }
-  return new U2DElement(namespace + ':' + tagName)
+  return elm
 }
 
 export function createTextNode (text) {

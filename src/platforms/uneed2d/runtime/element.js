@@ -20,7 +20,7 @@ export default class Element {
   insertBefore (newNode, referenceNode) {
     const idx = this.children.indexOf(referenceNode)
     if (idx === -1) {
-      throw new Error('can not find child node: ' + referenceNode)
+      return
     }
     this.children.splice(idx, 0, newNode)
     newNode.parentNode = this
@@ -37,7 +37,7 @@ export default class Element {
   removeChild (childNode) {
     const idx = this.children.indexOf(childNode)
     if (idx === -1) {
-      throw new Error('can not find child node: ' + childNode)
+      return
     }
     this.children.splice(idx, 1)
     childNode.parentNode = null

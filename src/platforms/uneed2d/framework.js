@@ -1,59 +1,71 @@
+import UN from './engine'
 import Vue from 'uneed2d/runtime/index'
 import * as CONST from './const'
 
 const layoutMixin = {
-  data() {
+  data () {
     return {
       contentSize: {
-        width: UN.stage.width,
-        height: UN.stage.height
+        width: 0,
+        height: 0
       }
     }
   },
-  created() {
+  created () {
+    this.contentSize.width = UN.stage.width
+    this.contentSize.height = UN.stage.height
     UN.stage.on('resize', this.onStageResize, this)
   },
-  destroyed() {
+  destroyed () {
     UN.stage.off('resize', this.onStageResize, this)
   },
 
   methods: {
-    onStageResize() {
+    onStageResize () {
       this.contentSize.width = UN.stage.width
       this.contentSize.height = UN.stage.height
-    },
+    }
   }
 }
 
-function containerMixin(container) {
+function containerMixin (container) {
   return {
-    created() {
+    created () {
       this.$object = container
-    },
-    destroyed() {
-      this.$object.destroy()
     }
   }
 }
 
 Vue.initWith = function (container, Component) {
-  let stage = container.stage
-  let view = stage.view || stage.renderer.view
-  let parent = view.parentNode
-  let vueStage = document.createElement('div')
+  const stage = container.stage
+  const view = stage.view || stage.renderer.view
+  const parent = view.parentNode
+  const vueStage = document.createElement('div')
   vueStage.id = CONST.ROOT
   vueStage.style.display = 'none'
   parent.appendChild(vueStage)
-  stage.vue = new Vue({
+  container.vue = new Vue({
     mixins: [layoutMixin, containerMixin(container)],
-    render(createElement) {
+    render (createElement) {
       return createElement(Component)
+    },
+    mounted () {
+      const refs = this.$children[0].$refs
+      Object.keys(refs).forEach(key => {
+        if (container[key] == void 0) {
+          if (refs[key].$object) {
+            container[key] = refs[key].$object
+          } else {
+            container[key] = refs[key]
+          }
+        }
+      })
     }
   })
-  stage.vue.$mount(vueStage)
+  container.vue.$mount(vueStage)
 }
 
-if(typeof window !== 'undefined' && window.UN) {
+if (typeof window !== 'undefined' && window.UN) {
   UN.vue = Vue.initWith
 }
 

@@ -2460,10 +2460,9 @@ var modules = [
 var directives = {};
 
 /*  */
-var isReservedTag = makeMap(
-  'fake-element',
-  true
-);
+var isReservedTag = function(tag) {
+  return /^un\-/.test(tag)
+};
 
 // Elements that you can, intentionally, leave open (and which close themselves)
 // more flexable than web
